@@ -1,0 +1,23 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "master", "task01" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0
+    - name: Restore
+      run: dotnet restore practice2026/practice2026.sln
+    - name: Build
+      run: dotnet build practice2026/practice2026.sln --no-restore
+    - name: Test
+      run: dotnet test practice2026/practice2026.sln --no-build
