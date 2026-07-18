@@ -25,6 +25,7 @@ namespace task17.tests
             server.Start();
 
             server.AddCommand(cmd1);
+            System.Threading.Thread.Sleep(50);
             server.AddCommand(hardStop);
             server.AddCommand(cmd2);
 

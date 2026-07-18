@@ -6,6 +6,7 @@ using task17;
 
 namespace task19
 {
+    //Наследуется от ImplementationBigCommand, а не от ICommand, т.к. сам по себе функционал TestCommand был реализован в задании 18 через ImplementationBigCommand: Icommand
     public class TestCommand : ImplementationBigCommand
     {
         private int _id;
