@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace task17
@@ -9,8 +10,16 @@ namespace task17
         void Execute();
     }
 
+    public interface IScheduler
+    {
+        bool HasCommand();
+        ICommand Select();
+        void Add(ICommand cmd);
+    }
+
     public class ServerThread
     {
+        public RoundRobinScheduler Scheduler = new RoundRobinScheduler();
         public BlockingCollection<ICommand> queue = new BlockingCollection<ICommand>();
         public Thread thread;
         public bool runcontinue = true;
@@ -45,8 +54,29 @@ namespace task17
             {
                 try
                 {
-                    ICommand command = queue.Take();
-                    command.Execute();
+                    if (Scheduler.HasCommand())
+                    {
+                        if (queue.TryTake(out var newCmd))
+                        {
+                            Scheduler.Add(newCmd);
+                        }
+
+                        ICommand lastcommand = Scheduler.Select();
+                        lastcommand.Execute();
+
+                        if (lastcommand is ImplementationBigCommand bigCmd)
+                        {
+                            if (bigCmd.CountImplementation < bigCmd.MaxcountImplementation)
+                            {
+                                Scheduler.Add(bigCmd);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ICommand incomingCmd = queue.Take();
+                        Scheduler.Add(incomingCmd);
+                    }
                 }
                 catch (InvalidOperationException)
                 {
@@ -61,22 +91,20 @@ namespace task17
 
         internal void ExecuteHardStop()
         {
-            VerifyIsCurrentThread();
+            if (Thread.CurrentThread != thread)
+            {
+                throw new InvalidOperationException("Команду остановки можно вызвать только внутри ServerThread");
+            }
             runcontinue = false;
         }
 
         internal void ExecuteSoftStop()
         {
-            VerifyIsCurrentThread();
-            queue.CompleteAdding();
-        }
-
-        private void VerifyIsCurrentThread()
-        {
             if (Thread.CurrentThread != thread)
             {
-                throw new InvalidOperationException("Команду остановки можно вызвать только внутри ServerThread!");
+                throw new InvalidOperationException("Команду остановки можно вызвать только внутри ServerThread");
             }
+            queue.CompleteAdding();
         }
 
         public void Join()
@@ -112,6 +140,43 @@ namespace task17
         public void Execute()
         {
             _serverThread.ExecuteSoftStop();
+        }
+    }
+
+    public class ImplementationBigCommand : ICommand
+    {
+        public int CountImplementation = 0;
+        public int MaxcountImplementation { get; set; }
+
+        public ImplementationBigCommand(int maxcountImplementation)
+        {
+            MaxcountImplementation = maxcountImplementation;
+        }
+
+        public virtual void Execute()
+        {
+            CountImplementation++;
+        }
+    }
+
+    public class RoundRobinScheduler : IScheduler
+    {
+        public Queue<ICommand> QueueCommand = new Queue<ICommand>();
+
+        public bool HasCommand()
+        {
+            if (QueueCommand.Count == 0) { return false; }
+            return true;
+        }
+
+        public ICommand Select()
+        {
+            return QueueCommand.Dequeue();
+        }
+
+        public void Add(ICommand cmd)
+        {
+            QueueCommand.Enqueue(cmd);
         }
     }
 }
