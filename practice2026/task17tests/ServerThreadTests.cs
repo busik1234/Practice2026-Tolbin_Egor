@@ -25,6 +25,7 @@ namespace task17.tests
             server.Start();
 
             server.AddCommand(cmd1);
+            System.Threading.Thread.Sleep(50);
             server.AddCommand(hardStop);
             server.AddCommand(cmd2);
 
@@ -33,6 +34,7 @@ namespace task17.tests
             Assert.Equal(1, cmd1.ExecutionCount);
             Assert.Equal(0, cmd2.ExecutionCount);
         }
+
 
         [Fact]
         public void SoftStop_ShouldExecuteAllExistingCommands_ThenStop()

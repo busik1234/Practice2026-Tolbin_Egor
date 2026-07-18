@@ -54,13 +54,20 @@ namespace task17
             {
                 try
                 {
+                    while (queue.TryTake(out var newCmd))
+                    {
+                        if (newCmd is HardStopCommand)
+                        {
+                            newCmd.Execute();
+                            runcontinue = false;
+                            break;
+                        }
+                        Scheduler.Add(newCmd);
+                    }
+
+                    if (!runcontinue) break;
                     if (Scheduler.HasCommand())
                     {
-                        if (queue.TryTake(out var newCmd))
-                        {
-                            Scheduler.Add(newCmd);
-                        }
-
                         ICommand lastcommand = Scheduler.Select();
                         lastcommand.Execute();
 
@@ -75,6 +82,11 @@ namespace task17
                     else
                     {
                         ICommand incomingCmd = queue.Take();
+                        if (incomingCmd is HardStopCommand)
+                        {
+                            incomingCmd.Execute();
+                            break;
+                        }
                         Scheduler.Add(incomingCmd);
                     }
                 }
